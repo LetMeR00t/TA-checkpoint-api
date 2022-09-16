@@ -1,0 +1,322 @@
+<form>
+  <label>[Checkpoint] UC1: Add/Delete hosts or networks to/from an existing group</label>
+  <description>This dashboard is used to instanciate new objets and add them into an existing group. This use case n°1 (UC1) was imagined for blacklist several IPs at the same time. For this use case, objects is created using a red color.</description>
+  <fieldset submitButton="false">
+    <input type="radio" token="action">
+      <label>Action</label>
+      <choice value="add">Add</choice>
+      <choice value="delete">Delete</choice>
+      <default>add</default>
+    </input>
+    <input type="radio" token="lookup_author">
+      <label>[Filter] Lookup author</label>
+      <default>a424122</default>
+      <initialValue>a424122</initialValue>
+      <fieldForLabel>e</fieldForLabel>
+      <fieldForValue>v</fieldForValue>
+      <search>
+        <query>| makeresults
+| eval e = "Only me", v = "$env:user$"
+| append [| makeresults
+| eval e = "All authors", v = "*"]</query>
+      </search>
+    </input>
+    <input type="dropdown" token="lookup">
+      <label>Lookup</label>
+      <fieldForLabel>title_render</fieldForLabel>
+      <fieldForValue>title</fieldForValue>
+      <search>
+        <query>| rest servicesNS/-/TA-checkpoint-api/data/lookup-table-files search="TA-checkpoint-api"
+| search author="$lookup_author$"
+| eval title_render = title+" ("+author+")"
+| table title, title_render</query>
+      </search>
+    </input>
+    <input type="text" token="template">
+      <label>Template name</label>
+      <default>BL_{name}_{final_ip_address}</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel id="panel_preview">
+      <html>
+        <h1>Preview</h1>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Original source file: Input of the CSV file named "$lookup$"</title>
+      <table>
+        <search>
+          <query>| inputlookup $lookup$</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Preview of the rendered objects that will be sent to the Checkpoint Manager (interpreted)</title>
+      <table>
+        <title>If any field is empty, no value will be set and sent to the Checkpoint Manager</title>
+        <search>
+          <query>| inputlookup $lookup$
+| eval template = "$template$"
+| foreach * [eval template=if(match(template,"&lt;&lt;FIELD&gt;&gt;"),replace(template,"{&lt;&lt;FIELD&gt;&gt;}", &lt;&lt;FIELD&gt;&gt;),template)]
+| eval name = template, ip_network = case(isnotnull(ip_address),ip_address+"/32",isnotnull(subnet),subnet+"/"+mask_length)
+| makemv delim="," tags
+| makemv delim="," groups
+| table name, type, ip_network, nat_settings, tags, broadcast, color, comments, groups
+| rename name as Name, type as "Type", ip_network as "IP address or subnet", nat_settings as "NAT settings", tags as "Tags", broadcast as "Broadcast", color as "Color", comments as "Comments", groups as "Groups"</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <format type="color" field="Type">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel id="panel_execution">
+      <html>
+        <h1>Execution</h1>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Execution of the action</title>
+      <input type="checkbox" token="instances">
+        <label>Which instances will apply those changes?</label>
+        <delimiter>,</delimiter>
+        <change>
+          <condition value="1">
+            <set token="show_credentials_1">1</set>
+            <unset token="show_credentials_2"></unset>
+            <unset token="show_credentials_3"></unset>
+            <unset token="credentials_1"></unset>
+            <unset token="credentials_2"></unset>
+            <unset token="credentials_3"></unset>
+          </condition>
+          <condition value="1,2">
+            <set token="show_credentials_1">1</set>
+            <set token="show_credentials_2">2</set>
+            <unset token="show_credentials_3"></unset>
+            <unset token="credentials_1"></unset>
+            <unset token="credentials_2"></unset>
+            <unset token="credentials_3"></unset>
+          </condition>
+          <condition value="1,3">
+            <set token="show_credentials_1">1</set>
+            <unset token="credentials_1"></unset>
+            <unset token="show_credentials_2"></unset>
+            <unset token="credentials_2"></unset>
+            <set token="show_credentials_3">3</set>
+            <unset token="credentials_3"></unset>
+          </condition>
+          <condition value="1,2,3">
+            <set token="show_credentials_1">1</set>
+            <unset token="credentials_1"></unset>
+            <set token="show_credentials_2">1</set>
+            <unset token="credentials_2"></unset>
+            <set token="show_credentials_3">1</set>
+            <unset token="credentials_3"></unset>
+          </condition>
+          <condition value="2">
+            <unset token="show_credentials_1"></unset>
+            <unset token="credentials_1"></unset>
+            <set token="show_credentials_2">1</set>
+            <unset token="credentials_2"></unset>
+            <unset token="credentials_3"></unset>
+            <unset token="show_credentials_3"></unset>
+          </condition>
+          <condition value="2,3">
+            <unset token="show_credentials_1"></unset>
+            <unset token="credentials_1"></unset>
+            <set token="show_credentials_2">1</set>
+            <unset token="credentials_2"></unset>
+            <set token="show_credentials_3">1</set>
+            <unset token="credentials_3"></unset>
+          </condition>
+          <condition value="3">
+            <unset token="show_credentials_1"></unset>
+            <unset token="credentials_1"></unset>
+            <unset token="show_credentials_2"></unset>
+            <unset token="credentials_2"></unset>
+            <set token="show_credentials_3">1</set>
+            <unset token="credentials_3"></unset>
+          </condition>
+          <condition>
+            <unset token="show_credentials_1"></unset>
+            <unset token="show_credentials_2"></unset>
+            <unset token="show_credentials_3"></unset>
+          </condition>
+        </change>
+        <fieldForLabel>instance</fieldForLabel>
+        <fieldForValue>instance_number</fieldForValue>
+        <search>
+          <query>| rest /servicesNS/nobody/TA-checkpoint-api/configs/conf-ta_checkpoint_api_settings
+| where title="additional_parameters"
+| table instance_*_hostname
+| transpose column_name=instance
+| rename "row 1" as value
+| eval instance = upper(replace(replace(instance,"_hostname",""),"_"," ")), instance_number = replace(instance,"INSTANCE ",""), instance = instance+" ("+value+")"
+| table instance, instance_number</query>
+        </search>
+      </input>
+      <input type="dropdown" token="credentials_1" depends="$show_credentials_1$">
+        <label>Which credentials should be used by instance 1?</label>
+        <fieldForLabel>title</fieldForLabel>
+        <fieldForValue>username</fieldForValue>
+        <search>
+          <query>| rest /servicesNS/nobody/TA-checkpoint-api/configs/conf-ta_checkpoint_api_account
+| table title, username
+| eval title = title+": "+username</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <change>
+          <condition>
+            <eval token="account_usernames">"{"+if(isnotnull($credentials_1$),"\"1\": \""+$credentials_1$+"\"","")+if(isnotnull($credentials_1$) AND isnotnull($credentials_2$),",","")+if(isnotnull($credentials_2$),"\"2\": \""+$credentials_2$+"\"","")+if(isnotnull($credentials_3$) AND (isnotnull($credentials_1$) OR isnotnull($credentials_2$)),",","")+if(isnotnull($credentials_3$),"\"3\": \""+$credentials_3$+"\",","")+"}"</eval>
+            <eval token="account_usernames">replace(account_usernames,"\"","\\\""</eval>
+          </condition>
+        </change>
+      </input>
+      <input type="dropdown" token="credentials_2" depends="$show_credentials_2$">
+        <label>Which credentials should be used by instance 2?</label>
+        <fieldForLabel>title</fieldForLabel>
+        <fieldForValue>username</fieldForValue>
+        <search>
+          <query>| rest /servicesNS/nobody/TA-checkpoint-api/configs/conf-ta_checkpoint_api_account
+| table title, username
+| eval title = title+": "+username</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <change>
+          <condition>
+            <eval token="account_usernames">"{"+if(isnotnull($credentials_1$),"\"1\": \""+$credentials_1$+"\"","")+if(isnotnull($credentials_1$) AND isnotnull($credentials_2$),",","")+if(isnotnull($credentials_2$),"\"2\": \""+$credentials_2$+"\"","")+if(isnotnull($credentials_3$) AND (isnotnull($credentials_1$) OR isnotnull($credentials_2$)),",","")+if(isnotnull($credentials_3$),"\"3\": \""+$credentials_3$+"\",","")+"}"</eval>
+            <eval token="account_usernames">replace(account_usernames,"\"","\\\""</eval>
+          </condition>
+        </change>
+      </input>
+      <input type="dropdown" token="credentials_3" depends="$show_credentials_3$">
+        <label>Which credentials should be used by instance 3?</label>
+        <fieldForLabel>title</fieldForLabel>
+        <fieldForValue>username</fieldForValue>
+        <search>
+          <query>| rest /servicesNS/nobody/TA-checkpoint-api/configs/conf-ta_checkpoint_api_account
+| table title, username
+| eval title = title+": "+username</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <change>
+          <condition>
+            <eval token="account_usernames">"{"+if(isnotnull($credentials_1$),"\"1\": \""+$credentials_1$+"\"","")+if(isnotnull($credentials_1$) AND isnotnull($credentials_2$),",","")+if(isnotnull($credentials_2$),"\"2\": \""+$credentials_2$+"\"","")+if(isnotnull($credentials_3$) AND (isnotnull($credentials_1$) OR isnotnull($credentials_2$)),",","")+if(isnotnull($credentials_3$),"\"3\": \""+$credentials_3$+"\",","")+"}"</eval>
+            <eval token="account_usernames">replace(account_usernames,"\"","\\\""</eval>
+          </condition>
+        </change>
+      </input>
+      <input type="radio" token="execute">
+        <label>⚠️ Based on the previous checks, the execution choice is:</label>
+        <choice value="0">No action</choice>
+        <choice value="execute_discard">Execute and discard (tests only)</choice>
+        <choice value="execute">Execute only (no publish, no install)</choice>
+        <choice value="publish">Execute/Publish only (no install)</choice>
+        <choice value="publish_install">Execute/Publish/Install</choice>
+        <default>0</default>
+        <change>
+          <condition value="0">
+            <unset token="enable_execute"></unset>
+            <unset token="sid"></unset>
+          </condition>
+          <condition>
+            <set token="enable_execute">1</set>
+          </condition>
+        </change>
+      </input>
+      <table>
+        <search>
+          <progress>
+            <unset token="sid"></unset>
+          </progress>
+          <done>
+            <set token="sid">$job.sid$</set>
+          </done>
+          <query>| inputlookup $lookup$
+| eval enable_execute = "$enable_execute$"
+| sendalert checkpoint_api_perform_an_action_on_network_objects param.instances="$instances$" param.account_usernames="$account_usernames$" param.name_template="$template$" param.action="$action$" param.automatic_publish_and_install="$execute$"</query>
+          <earliest>@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel id="panel_validation">
+      <html>
+        <h1>Validation through audit logs</h1>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>index=cim_modactions sourcetype="modular_alerts:*" app="TA-checkpoint-api" sid="$sid$"
+| rex field=_raw "^\d+\-\d+\-\d+ \d+:\d+:\d+,\d+ (?&lt;level&gt;[^ ]+)"
+| eval signature = coalesce(signature,_raw)
+| sort 0 -_time  
+| table  _time user level signature
+| rename user as "User", level as "Level", signature as "Signature"</query>
+          <earliest>-4h@m</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">100</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row depends="$always_hidden$">
+    <panel>
+      <html>
+        <style>
+          #panel_validation .panel-body{
+            background: #F4E08D !important;
+          }
+          #panel_preview .panel-body{
+            background: #F48DA1 !important;
+          }
+          #panel_execution .panel-body{
+            background: #E26464 !important;
+          }
+          .panel-body h1{
+            color:white !important;
+            text-align: center !important;
+            font-weight: bold !important;
+            font-size: xx-large;
+          }
+        </style>
+      </html>
+    </panel>
+  </row>
+</form>

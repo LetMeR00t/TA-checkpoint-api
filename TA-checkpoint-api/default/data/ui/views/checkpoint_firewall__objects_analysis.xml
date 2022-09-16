@@ -1,0 +1,1017 @@
+<form>
+  <label>[Firewall] Objects analysis</label>
+  <description>This dashboard analyze the exported configuration (JSON format) of our firewalls</description>
+  <init>
+    <unset token="show_statistics"></unset>
+    <unset token="show_rules"></unset>
+    <set token="show_objects">1</set>
+    <unset token="show_data_deletion"></unset>
+  </init>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="input_name">
+      <label>Input</label>
+      <fieldForLabel>input_name</fieldForLabel>
+      <fieldForValue>input_name</fieldForValue>
+      <search>
+        <query>`checkpoint_api_get_events(*,*,*,*,*)`
+  | stats count by input_name</query>
+        <earliest>-3mon</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="dropdown" token="time">
+      <label>Time of data (Last 10 days)</label>
+      <fieldForLabel>input_uid</fieldForLabel>
+      <fieldForValue>time</fieldForValue>
+      <search>
+        <query>`checkpoint_api_get_events($input_name$,*,*,*,*)`
+  | stats earliest(_time) as et, latest(_time) as lt, count by input_uid
+  | eval time=input_uid+":"+tostring(round(relative_time(et,"-1min")))+":"+tostring(round(relative_time(lt,"+1min"))), input_uid = input_uid+": "+strftime(et,"%F")+" - "+strftime(et,"%H:%M:%S")+" to "+strftime(lt,"%H:%M:%S")+" : "+tostring(count)+" events"
+  | sort -lt</query>
+        <earliest>-10d@d</earliest>
+        <latest>now</latest>
+      </search>
+      <change>
+        <condition>
+          <eval token="input_uid">mvindex(split($time$,":"),0)</eval>
+          <eval token="time_start">mvindex(split($time$,":"),1)</eval>
+          <eval token="time_end">mvindex(split($time$,":"),2)</eval>
+        </condition>
+      </change>
+    </input>
+    <input type="dropdown" token="input_domain">
+      <label>Domain</label>
+      <choice value="*">Any</choice>
+      <fieldForLabel>input_domain</fieldForLabel>
+      <fieldForValue>input_domain</fieldForValue>
+      <search>
+        <query>`checkpoint_api_get_events($input_name$,$input_uid$,*,*,*)`
+  | stats count by input_domain</query>
+        <earliest>$time_start$</earliest>
+        <latest>$time_end$</latest>
+      </search>
+      <default>*</default>
+    </input>
+    <input type="dropdown" token="access_layer">
+      <label>Access layer</label>
+      <choice value="*">Any</choice>
+      <fieldForLabel>access_layer</fieldForLabel>
+      <fieldForValue>access_layer</fieldForValue>
+      <search>
+        <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)`
+| rex field="source" "access-rule:(?&lt;access_layer&gt;[^:]+)"
+| stats count by access_layer</query>
+        <earliest>$time_start$</earliest>
+        <latest>$time_end$</latest>
+      </search>
+      <default>*</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Overview - Last extract time over the last 7 days</title>
+      <viz type="carousel-viz.carousel-viz">
+        <search>
+          <query>`checkpoint_api_get_events(*,*,*,*,*)`
+  | stats latest(_time) as _time, count by input_uid
+  | sort -_time
+  | eval input_uid = "UID: "+input_uid+" &gt; "+strftime(_time,"%c")+": "+count+" events"
+  | table input_uid</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="carousel-viz.carousel-viz.autoplay">true</option>
+        <option name="carousel-viz.carousel-viz.autoplaySpeed">normal</option>
+        <option name="carousel-viz.carousel-viz.colorMode">foreground</option>
+        <option name="carousel-viz.carousel-viz.direction">left</option>
+        <option name="carousel-viz.carousel-viz.forceAllCaps">true</option>
+        <option name="carousel-viz.carousel-viz.numDecimalPlaces">0</option>
+        <option name="carousel-viz.carousel-viz.orientation">vertical</option>
+        <option name="carousel-viz.carousel-viz.showDots">false</option>
+        <option name="carousel-viz.carousel-viz.size">automatic</option>
+        <option name="carousel-viz.carousel-viz.slidesToScroll">1</option>
+        <option name="carousel-viz.carousel-viz.slidesToShow">3</option>
+        <option name="carousel-viz.carousel-viz.thousandsSeparator">true</option>
+        <option name="carousel-viz.carousel-viz.tokenCaption">cv_caption</option>
+        <option name="carousel-viz.carousel-viz.tokenFormattedValue">cv_formatted_value</option>
+        <option name="carousel-viz.carousel-viz.tokenRawValue">cv_raw_value</option>
+        <option name="carousel-viz.carousel-viz.tokenUnit">cv_unit</option>
+        <option name="carousel-viz.carousel-viz.unitPosition">after</option>
+        <option name="drilldown">none</option>
+        <option name="height">289</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <viz type="status_indicator_app.status_indicator">
+        <search>
+          <query>| makeresults
+  | eval text = "📈 Statistics"
+  | table text</query>
+          <earliest>-15m</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">49</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">static_color</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">background</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">users</option>
+        <option name="status_indicator_app.status_indicator.icon">fix_icon</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">3</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#006d9c</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Scores by access layer</title>
+      <input type="text" token="active">
+        <label>Active rule without any issue</label>
+        <default>1</default>
+        <initialValue>1</initialValue>
+      </input>
+      <input type="text" token="active_without_name">
+        <label>Active rule without a name</label>
+        <default>0.9</default>
+        <initialValue>0.9</initialValue>
+      </input>
+      <input type="text" token="inactive">
+        <label>Inactive rule</label>
+        <default>0.5</default>
+        <initialValue>0.5</initialValue>
+      </input>
+      <input type="text" token="active_no_hit">
+        <label>Active rule with no hit</label>
+        <default>0</default>
+        <initialValue>0</initialValue>
+      </input>
+      <viz type="carousel-viz.carousel-viz">
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)`
+| rex field="source" "access-rule:(?&lt;access_layer&gt;[^:]+)"
+| rename "hits.value" as hits_value
+| eval score = if(enabled="false",$inactive$,if(hits_value=0, $active_no_hit$,if(isnull(name) OR name="" OR name=" ",$active_without_name$,$active$)))
+| eventstats count as Total by access_layer
+| stats sum(score) as score by access_layer, Total
+| eval score_final = upper(access_layer)+": "+tostring(round(score/Total,2)*100)+"% (on "+Total+" rules)", color = green
+| table score_final</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="carousel-viz.carousel-viz.autoplay">true</option>
+        <option name="carousel-viz.carousel-viz.autoplaySpeed">normal</option>
+        <option name="carousel-viz.carousel-viz.colorMode">foreground</option>
+        <option name="carousel-viz.carousel-viz.direction">left</option>
+        <option name="carousel-viz.carousel-viz.forceAllCaps">true</option>
+        <option name="carousel-viz.carousel-viz.numDecimalPlaces">0</option>
+        <option name="carousel-viz.carousel-viz.orientation">vertical</option>
+        <option name="carousel-viz.carousel-viz.showDots">false</option>
+        <option name="carousel-viz.carousel-viz.size">automatic</option>
+        <option name="carousel-viz.carousel-viz.slidesToScroll">1</option>
+        <option name="carousel-viz.carousel-viz.slidesToShow">3</option>
+        <option name="carousel-viz.carousel-viz.thousandsSeparator">true</option>
+        <option name="carousel-viz.carousel-viz.tokenCaption">cv_caption</option>
+        <option name="carousel-viz.carousel-viz.tokenFormattedValue">cv_formatted_value</option>
+        <option name="carousel-viz.carousel-viz.tokenRawValue">cv_raw_value</option>
+        <option name="carousel-viz.carousel-viz.tokenUnit">cv_unit</option>
+        <option name="carousel-viz.carousel-viz.unitPosition">after</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>$input_domain$: Number of Rules (Total)</title>
+      <viz type="departures-board-viz.departures-board-viz">
+        <title>Global rules not included</title>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)`
+  | stats count</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="departures-board-viz.departures-board-viz.align">center</option>
+        <option name="departures-board-viz.departures-board-viz.auto_refresh">false</option>
+        <option name="departures-board-viz.departures-board-viz.auto_refresh_period">5</option>
+        <option name="departures-board-viz.departures-board-viz.force_all_caps">true</option>
+        <option name="departures-board-viz.departures-board-viz.is_fixed_length">false</option>
+        <option name="departures-board-viz.departures-board-viz.num_characters">10</option>
+        <option name="departures-board-viz.departures-board-viz.size">XXL</option>
+        <option name="departures-board-viz.departures-board-viz.text_align">center</option>
+        <option name="departures-board-viz.departures-board-viz.theme">light</option>
+        <option name="departures-board-viz.departures-board-viz.timing">500</option>
+        <option name="departures-board-viz.departures-board-viz.token_id">dbv_id</option>
+        <option name="departures-board-viz.departures-board-viz.token_term">dbv_term</option>
+        <option name="drilldown">none</option>
+        <option name="height">198</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>$input_domain$: Rules with traffic and name</title>
+      <viz type="status_indicator_app.status_indicator">
+        <title>Only active rules</title>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)` "hits.value"!=0 AND enabled="true"
+  | where isnotnull(name) AND name!="" AND name!=" "
+  | stats count</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">211</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">static_color</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">check</option>
+        <option name="status_indicator_app.status_indicator.icon">fix_icon</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#53a051</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+    <panel>
+      <title>$input_domain$: Rules with traffic and without a name</title>
+      <viz type="status_indicator_app.status_indicator">
+        <title>Only active rules</title>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)` "hits.value"!=0 AND enabled="true"
+  | where isnull(name) OR name="" OR name=" "
+  | stats count</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">210</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">static_color</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">warning</option>
+        <option name="status_indicator_app.status_indicator.icon">fix_icon</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#f8be34</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+    <panel>
+      <title>$input_domain$: Rules without traffic over 6 monthes</title>
+      <viz type="status_indicator_app.status_indicator">
+        <title>Only active rules</title>
+        <search>
+          <progress>
+            <condition>
+              <unset token="active_rules_without_traffic"></unset>
+            </condition>
+          </progress>
+          <done>
+            <condition>
+              <set token="active_rules_without_traffic">$job.eventCount$</set>
+            </condition>
+          </done>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)` "hits.value"=0 AND enabled="true"
+  | stats count</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">207</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">static_color</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">times-circle</option>
+        <option name="status_indicator_app.status_indicator.icon">fix_icon</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#dc4e41</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+    <panel>
+      <title>$input_domain$: Number of Rules disabled</title>
+      <viz type="status_indicator_app.status_indicator">
+        <title>Global rules not included</title>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)` enabled="false"
+  | stats count</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">189</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">static_color</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">power-off</option>
+        <option name="status_indicator_app.status_indicator.icon">fix_icon</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#97999B</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Configuration Health</title>
+      <viz type="pictorial-chart-viz.pictorial-chart-viz">
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)`
+  | rename "hits.value" as hits_value
+  | eval label = if(enabled="false","3-Disabled",if(hits_value=0, "2-Inactive (no hit)",if(isnull(name) OR name="" OR name=" ","1-Active (without name)","0-Active"))), color=if(enabled="false","grey",if(hits_value=0, "#E91123",if(isnull(name) OR name="" OR name=" ","#FFF100","#BAD80A"))), icon=if(enabled="false","heart-broken",if(hits_value=0, "heart-broken",if(isnull(name) OR name="" OR name=" ","heartbeat","heart")))
+  | stats count by label, color, icon
+  | rename count as value</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="pictorial-chart-viz.pictorial-chart-viz.backgroundColor">#ffffff</option>
+        <option name="pictorial-chart-viz.pictorial-chart-viz.showLegend">true</option>
+        <option name="pictorial-chart-viz.pictorial-chart-viz.singleRow">false</option>
+        <option name="pictorial-chart-viz.pictorial-chart-viz.sortMethod">alphanumeric</option>
+        <option name="pictorial-chart-viz.pictorial-chart-viz.tokenLabel">pc_label_token</option>
+        <option name="pictorial-chart-viz.pictorial-chart-viz.tokenValue">pc_value_token</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <viz type="status_indicator_app.status_indicator">
+        <search>
+          <query>| makeresults
+  | eval text = " 🚦 Rules Analysis"
+  | table text</query>
+          <earliest>-15m</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">49</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">static_color</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">background</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">users</option>
+        <option name="status_indicator_app.status_indicator.icon">fix_icon</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">3</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#006d9c</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>$access_layer$: Network rules visualization</title>
+      <input type="radio" token="unamed_rules_color">
+        <label>Unamed rules color (if hits)</label>
+        <choice value="green">Green</choice>
+        <choice value="orange">Orange</choice>
+        <default>green</default>
+        <initialValue>green</initialValue>
+      </input>
+      <input type="radio" token="generate_radio_network_rules">
+        <label>Activate this chart</label>
+        <choice value="Yes">Yes</choice>
+        <choice value="No">No</choice>
+        <change>
+          <condition value="Yes">
+            <set token="generation_network">1</set>
+          </condition>
+          <condition value="No">
+            <unset token="generation_network"></unset>
+          </condition>
+        </change>
+        <default>No</default>
+        <initialValue>No</initialValue>
+      </input>
+      <viz type="network-diagram-viz.network-diagram-viz">
+        <title>This chart needs few seconds to load</title>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)`
+  | rex field="source" "access-rule:(?&lt;access_layer&gt;[^:]+)"
+  | search access_layer="$access_layer$"
+  | rename "hits.value" as hits, "rule-number" as rule_number
+  | eval name = if(isnotnull(subdomain),upper(subdomain)+": ","")+"#"+tostring(rule_number)+":"+if(isnull(name) OR name="" OR name=" "," Unamed rule",name), activation = "$generation_network$"
+  | table name, section, hits, enabled
+  | sort -hits
+  | rename section as to, name as from, hits as value
+  | eval type = "globe", color = if(enabled="false","grey",if(value==0,"red",if(match(from,"Unamed"),"$unamed_rules_color$","green"))), linkwidth=case(value&lt;=10,1,value&lt;=100,2,value&lt;=1000,3,value&lt;=10000,4,value&lt;=100000,5,value&lt;=1000000,6,value&lt;=1000000,7,value&lt;=100000000,8,value&lt;=1000000000,9,1=1,10)
+  | appendpipe 
+      [| stats sum(value) as value by to
+      | eval from = to, type = "code-branch", color = "blue"
+      | table from, to, value, type]</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">592</option>
+        <option name="network-diagram-viz.network-diagram-viz.canZoom">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.clusterBy">none</option>
+        <option name="network-diagram-viz.network-diagram-viz.defaultNodeType">info</option>
+        <option name="network-diagram-viz.network-diagram-viz.draggableNodes">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.enablePhysics">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.hierarchy">false</option>
+        <option name="network-diagram-viz.network-diagram-viz.hierarchyDirection">Left-Right</option>
+        <option name="network-diagram-viz.network-diagram-viz.hierarchySortMethod">directed</option>
+        <option name="network-diagram-viz.network-diagram-viz.linkTextLocation">bottom</option>
+        <option name="network-diagram-viz.network-diagram-viz.smoothEdges">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.tokenNode">nd_node_token</option>
+        <option name="network-diagram-viz.network-diagram-viz.tokenToNode">nd_to_node_token</option>
+        <option name="network-diagram-viz.network-diagram-viz.tokenValue">nd_value_token</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Group Recursivity</title>
+      <viz type="network-diagram-viz.network-diagram-viz">
+        <title>Only groups with at least one group in his members are shown here</title>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,group)`
+| rename "groups{}.name" as members
+| stats count by name, members
+| eval type="globe", color="orange", generation = 1
+| table name, members, count, type, color
+| rename name as "from", members as "to", count as value
+  | appendpipe 
+      [| stats sum(value) as value by to
+      | eval from = to, type = "folder", color = "blue"
+      | table from, to, value, type, color]</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">594</option>
+        <option name="network-diagram-viz.network-diagram-viz.canZoom">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.clusterBy">group</option>
+        <option name="network-diagram-viz.network-diagram-viz.defaultNodeType">code-branch</option>
+        <option name="network-diagram-viz.network-diagram-viz.draggableNodes">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.enablePhysics">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.hierarchy">false</option>
+        <option name="network-diagram-viz.network-diagram-viz.hierarchyDirection">Top-Down</option>
+        <option name="network-diagram-viz.network-diagram-viz.hierarchySortMethod">directed</option>
+        <option name="network-diagram-viz.network-diagram-viz.linkTextLocation">bottom</option>
+        <option name="network-diagram-viz.network-diagram-viz.smoothEdges">true</option>
+        <option name="network-diagram-viz.network-diagram-viz.tokenNode">nd_node_token</option>
+        <option name="network-diagram-viz.network-diagram-viz.tokenToNode">nd_to_node_token</option>
+        <option name="network-diagram-viz.network-diagram-viz.tokenValue">nd_value_token</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Firewall policies (Selected access layer is "$access_layer$") - Rules by object names</title>
+      <input type="text" token="sources_filter">
+        <label>Sources</label>
+        <default>.*</default>
+        <initialValue>.*</initialValue>
+      </input>
+      <input type="text" token="destinations_filter">
+        <label>Destinations</label>
+        <default>.*</default>
+        <initialValue>.*</initialValue>
+      </input>
+      <input type="text" token="services_filter">
+        <label>Services</label>
+        <default>.*</default>
+        <initialValue>.*</initialValue>
+      </input>
+      <input type="dropdown" token="custom_field_1">
+        <label>Custom field 1</label>
+        <choice value=".*">Any</choice>
+        <choice value="None">None</choice>
+        <default>.*</default>
+        <initialValue>.*</initialValue>
+        <fieldForLabel>custom_field_1</fieldForLabel>
+        <fieldForValue>custom_field_1</fieldForValue>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)`
+| rex field="source" "access-rule:(?&lt;access_layer&gt;[^:]+)"
+| search access_layer="$access_layer$"
+| rename "custom-fields.field-1" as "custom_field_1"
+| stats count by custom_field_1</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+        </search>
+      </input>
+      <input type="dropdown" token="custom_field_2">
+        <label>Custom field 2</label>
+        <choice value=".*">Any</choice>
+        <choice value="None">None</choice>
+        <default>.*</default>
+        <initialValue>.*</initialValue>
+        <fieldForLabel>custom_field_2</fieldForLabel>
+        <fieldForValue>custom_field_2</fieldForValue>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)`
+| rex field="source" "access-rule:(?&lt;access_layer&gt;[^:]+)"
+| search access_layer="$access_layer$"
+| rename "custom-fields.field-2" as "custom_field_2"
+| stats count by custom_field_2</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+        </search>
+      </input>
+      <input type="dropdown" token="custom_field_3">
+        <label>Custom field 3</label>
+        <choice value=".*">Any</choice>
+        <choice value="None">None</choice>
+        <default>.*</default>
+        <initialValue>.*</initialValue>
+        <fieldForLabel>custom_field_3</fieldForLabel>
+        <fieldForValue>custom_field_3</fieldForValue>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)`
+| rex field="source" "access-rule:(?&lt;access_layer&gt;[^:]+)"
+| search access_layer="$access_layer$"
+| rename "custom-fields.field-3" as "custom_field_3"
+| stats count by custom_field_3</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+        </search>
+      </input>
+      <table>
+        <title>Number of rules : $rule_total$</title>
+        <search>
+          <done>
+            <set token="rule_total">$job.resultCount$</set>
+          </done>
+          <progress>
+            <unset token="rule_total"></unset>
+          </progress>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)`
+| rex field="source" "access-rule:(?&lt;access_layer&gt;[^:]+)"
+  | search access_layer="$access_layer$"
+  | rename "hits.value" as hits, "custom-fields.field-1" as "custom_field_1", "custom-fields.field-2" as "custom_field_2", "custom-fields.field-3" as "custom_field_3"
+  | eval custom_field_3 = if(isnull(custom_field_3) OR custom_field_3="" OR custom_field_3="None","None",custom_field_3), custom_field_2 = if(isnull(custom_field_2) OR custom_field_2="" OR custom_field_2="None","None",custom_field_2), custom_field_1 = if(isnull(custom_field_1) OR custom_field_1="" OR custom_field_1="None","None",custom_field_1)
+  | where match(custom_field_3,"$custom_field_3$") AND match(custom_field_2,"$custom_field_2$") AND match(custom_field_1,"$custom_field_1$")
+  | eval custom_field_3 = if(custom_field_3="None","✗",custom_field_3), custom_field_2 = if(custom_field_2="None","✗",custom_field_2), custom_field_1 = if(custom_field_1="None","✗",custom_field_1)
+  | fillnull value="None" custom_field_1 custom_field_2 custom_field_3
+  | eval IDs = "#CF1: "+custom_field_1+";;#CF2: "+custom_field_2+";;#CF3: "+custom_field_3
+  | makemv delim=";;" IDs
+  `comment("Source : UID to name")`
+  | rename source{} as source
+  | mvexpand source
+  | join type=left source 
+      [search `checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,network_objects,*)`
+      | rename uid as source, name as source_name
+      | table source_name, source]
+  | eval source = if(isnotnull(source_name), source_name, if(source=="97aeb369-9aea-11d5-bd16-0090272ccb30","Any",source))
+  `comment("Destination : UID to name")`
+  | rename destination{} as destination
+  | mvexpand destination
+  | join type=left destination 
+      [search `checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,network_objects,*)`
+      | rename uid as destination, name as destination_name
+      | table destination_name, destination]
+  | eval destination = if(isnotnull(destination_name), destination_name, if(destination=="97aeb369-9aea-11d5-bd16-0090272ccb30","Any",destination))
+  `comment("Service : UID to name")`
+  | rename service{} as service
+  | mvexpand service
+  | join type=left service 
+      [search `checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,service_applications,*)`
+      | rename uid as service, name as service_name
+      | table service_name, service]
+  | eval service = if(isnotnull(service_name), service_name, if(service=="97aeb369-9aea-11d5-bd16-0090272ccb30","Any",service))
+  | eval action = case(enabled=="false","Disabled",action=="6c488338-8eec-4103-ad21-cd461ac2c472","Accept",action=="6c488338-8eec-4103-ad21-cd461ac2c473","Drop",1=1,action)
+  | fillnull value=" " name
+  `comment("Get all rules with information")`
+  | where match(source, "$sources_filter$") AND match(destination, "$destinations_filter$") AND match(service, "$services_filter$")
+  | stats values(source) as source, values(destination) as destination, values(service) as service, values(IDs) as "Additional information" by uid, name, section, rule-number, hits, action
+  | table rule-number, section, name, source, destination, service, "Additional information", hits, action
+  | sort rule-number
+  | rename rule-number as "Rule #", section as "Section", name as "Rule name", source as "Sources", destination as "Destinations", service as "Services", hits as "Hits", action as "Action"</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="Section">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+        <format type="color" field="Hits">
+          <colorPalette type="map">{"0":#DC4E41}</colorPalette>
+        </format>
+        <format type="color" field="Action">
+          <colorPalette type="map">{"Accept":#53A051,"Drop":#DC4E41,"Disabled":#708794}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Rules without any hit since their creation</title>
+      <table>
+        <title>Number of active rules : $rule_no_hit$</title>
+        <search>
+          <done>
+            <set token="rule_no_hit">$job.resultCount$</set>
+          </done>
+          <progress>
+            <unset token="rule_no_hit"></unset>
+          </progress>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,access-rule)`  "hits.value"=0 AND enabled="true"
+| rex field="source" "access-rule:(?&lt;access_layer&gt;[^:]+)"
+  | search access_layer="$access_layer$"
+  | rename "meta-info.creation-time.iso-8601" as creation_time, "hits.value" as "Hits"
+  | table creation_time, section, rule-number, name, comments, "Hits"
+  | sort rule-number
+  | rename creation_time as "Creation time", section as Section, rule-number as "Rule #", name as Name, comments as "Comments"</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">10</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="Section">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+        <format type="color" field="SECURITIC">
+          <colorPalette type="map">{"None":#DC4E41}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>NAT policy - Rules by object names</title>
+      <input type="dropdown" token="package">
+        <label>NAT package</label>
+        <fieldForLabel>package</fieldForLabel>
+        <fieldForValue>package</fieldForValue>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,nat-rule)`
+| rex field="source" "nat-rule:(?&lt;package&gt;[^:]+)"
+| stats count by package</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+        </search>
+        <choice value="*">Any</choice>
+        <default>*</default>
+        <initialValue>*</initialValue>
+      </input>
+      <table>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,nat-rule)`
+| rex field="source" "nat-rule:(?&lt;package&gt;[^:]+)"
+  | search package="$package$"
+  `comment("Source : UID to name")`
+  | rename translated-source as tsource
+  | join type=left tsource 
+      [search `checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,network_objects,*)`
+      | rename uid as tsource, name as source_name
+      | table source_name, tsource]
+  | eval tsource = if(isnotnull(source_name), source_name, case(tsource="97aeb369-9aea-11d5-bd16-0090272ccb30","Any",tsource="85c0f50f-6d8a-4528-88ab-5fb11d8fe16c","Original",1=1,tsource))
+  | rename original-source as osource
+  | join type=left osource 
+      [search `checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,network_objects,*)`
+      | rename uid as osource, name as source_name
+      | table source_name, osource]
+  | eval osource = if(isnotnull(source_name), source_name, if(osource=="97aeb369-9aea-11d5-bd16-0090272ccb30","Any",osource))
+  `comment("Destination : UID to name")`
+  | rename translated-destination as tdestination
+  | join type=left tdestination 
+      [search `checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,network_objects,*)` 
+      | rename uid as  tdestination, name as destination_name
+      | table destination_name,  tdestination]
+  | eval tdestination = if(isnotnull(destination_name), destination_name, case(tdestination="97aeb369-9aea-11d5-bd16-0090272ccb30","Any",tdestination="85c0f50f-6d8a-4528-88ab-5fb11d8fe16c","Original",1=1,tdestination))
+  | rename original-destination as odestination
+  | join type=left odestination 
+      [search `checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,network_objects,*)`
+      | rename uid as  odestination, name as destination_name
+      | table destination_name,  odestination]
+  | eval odestination = if(isnotnull(destination_name), destination_name, if(odestination=="97aeb369-9aea-11d5-bd16-0090272ccb30","Any",odestination))
+  `comment("Service : UID to name")`
+  | rename translated-service as tservice
+  | join type=left tservice 
+      [search `checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,service_applications,*)`
+      | spath output=name path=name 
+      | spath output=uid path=uid 
+      | rename uid as tservice, name as service_name
+      | table service_name, tservice]
+  | eval tservice = if(isnotnull(service_name), service_name, case(tservice="97aeb369-9aea-11d5-bd16-0090272ccb30","Any",tservice="85c0f50f-6d8a-4528-88ab-5fb11d8fe16c","Original",1=1,tservice))
+  | rename original-service as oservice
+  | join type=left oservice 
+      [search `checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,service_applications,*)`
+      | spath output=name path=name 
+      | spath output=uid path=uid 
+      | rename uid as oservice, name as service_name
+      | table service_name, oservice]
+  | eval oservice = if(isnotnull(service_name), service_name, if(oservice=="97aeb369-9aea-11d5-bd16-0090272ccb30","Any",oservice))
+  `comment("Get all rules with information")`
+  | eval source = osource+if(tsource!="Original","  --&gt;  "+tsource,""), destination = odestination+if(tdestination!="Original","  --&gt;  "+tdestination,""), service = oservice+if(tservice!="Original","  --&gt;  "+tservice,"")
+  | stats values(source) as source, values(destination) as destination , values(service) as service by uid, section, rule-number, comments
+  | table rule-number, section, source, destination, service, comments
+  | sort rule-number
+  | rename rule-number as "Rule #", section as "Section", source as "Source NAT", destination as "Destination NAT", service as "Service", comments as "Comments"</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="Section">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <input type="dropdown" token="objects_type">
+        <label>Objects type</label>
+        <fieldForLabel>type</fieldForLabel>
+        <fieldForValue>type</fieldForValue>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,network_objects,*)`
+| stats count by type
+| where type!="group"</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+        </search>
+        <choice value="*">Any</choice>
+      </input>
+      <input type="radio" token="input_show_all_requests">
+        <label>Show hidden searches</label>
+        <choice value="Yes">Yes</choice>
+        <choice value="No">No</choice>
+        <default>No</default>
+        <initialValue>No</initialValue>
+        <change>
+          <condition value="Yes">
+            <set token="show_all_requests">1</set>
+          </condition>
+          <condition>
+            <unset token="show_all_requests"></unset>
+          </condition>
+        </change>
+      </input>
+      <viz type="status_indicator_app.status_indicator">
+        <search>
+          <query>| makeresults
+  | eval text = "🔍 Objects Analysis", enabled = "$show_objects$"
+  | table text</query>
+          <earliest>-15m</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">49</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">static_color</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">background</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">users</option>
+        <option name="status_indicator_app.status_indicator.icon">fix_icon</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">3</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#006d9c</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Number of Unused Objects</title>
+      <viz type="status_indicator_app.status_indicator">
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,misc,unused_objects)`
+  | stats count</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="height">127</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="status_indicator_app.status_indicator.colorBy">static_color</option>
+        <option name="status_indicator_app.status_indicator.fillTarget">text</option>
+        <option name="status_indicator_app.status_indicator.fixIcon">warning</option>
+        <option name="status_indicator_app.status_indicator.icon">fix_icon</option>
+        <option name="status_indicator_app.status_indicator.precision">0</option>
+        <option name="status_indicator_app.status_indicator.showOption">1</option>
+        <option name="status_indicator_app.status_indicator.staticColor">#000000</option>
+        <option name="status_indicator_app.status_indicator.useColors">true</option>
+        <option name="status_indicator_app.status_indicator.useThousandSeparator">true</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Hosts details</title>
+      <input type="text" token="filter_objects">
+        <label>Filter (Regex)</label>
+        <default>.*</default>
+        <initialValue>.*</initialValue>
+      </input>
+      <input type="radio" token="filter_hosts_find_group">
+        <label>Find group in other domains ("Also used in" field)</label>
+        <choice value="1">Yes</choice>
+        <choice value="0">No</choice>
+        <default>0</default>
+        <initialValue>0</initialValue>
+        <change>
+          <condition value="1">
+            <set token="search_filter_hosts_find_group">| join type=left name 
+      [search `checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,group)`
+      | eval domain = domain+" - "+domain_name
+      | stats values(domain) as domain by name
+      | eval domain = mvjoin(domain,";;;")]</set>
+          </condition>
+          <condition value="0">
+            <set token="search_filter_hosts_find_group">| eval domain = "(Not searched)"</set>
+          </condition>
+        </change>
+      </input>
+      <table>
+        <title>Number of hosts : $hosts_total$</title>
+        <search>
+          <done>
+            <set token="hosts_total">$job.resultCount$</set>
+          </done>
+          <progress>
+            <unset token="hosts_total"></unset>
+          </progress>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,$objects_type$)`
+| rename "meta-info.creation-time.iso-8601" as creation_time, "meta-info.last-modify-time.iso-8601" as modification_time, "ipv4-address" as ipv4_address, "ipv6-address" as ipv6_address
+  | where match(name,"$filter_objects$") OR match(ip,"$filter_objects$") OR cidrmatch("$filter_objects$",ip)
+  $search_filter_hosts_find_group$
+  | makemv delim=";;;" domain
+  | fillnull value="-" domain
+  | eval subnet4 = if(isnotnull(subnet4),subnet4+"/"+mask_length4,null()), subnet6 = if(isnotnull(subnet6),subnet6+"/"+mask_length6,null()), ip = coalesce(ipv4_address,ipv6_address,subnet4,subnet6)
+  | fillnull value="-" comments ip
+  | stats values(domain) as domain, values(groups{}.name) as "members" by name, ip, creation_time, modification_time, comments
+  | fillnull value="-" members
+  | table name, ip, creation_time, modification_time, domain, members, comments
+  | rename name as "Name", ip as "IP", creation_time as Created, modification_time as "Last Modification", domain as "Also used in", members as "Groups containing it", comments as "Comments"</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">10</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Groups details</title>
+      <input type="text" token="filter_groups">
+        <label>Filter (Keyword)</label>
+        <default>.*</default>
+        <initialValue>.*</initialValue>
+      </input>
+      <input type="radio" token="filter_groups_find_group">
+        <label>Find group in other domains ("Also used in" field)</label>
+        <choice value="1">Yes</choice>
+        <choice value="0">No</choice>
+        <default>0</default>
+        <initialValue>0</initialValue>
+        <change>
+          <condition value="1">
+            <set token="search_filter_groups_find_group">| join type=left name 
+      [search `checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,group)`
+      | stats values(domain) as domain by name
+      | eval domain = mvjoin(domain,";;;")]</set>
+          </condition>
+          <condition value="0">
+            <set token="search_filter_groups_find_group">| eval domain = "(Not searched)"</set>
+          </condition>
+        </change>
+      </input>
+      <table>
+        <title>Number of groups : $groups_total$ - Click on a group to have the details</title>
+        <search>
+          <done>
+            <set token="groups_total">$job.resultCount$</set>
+          </done>
+          <progress>
+            <unset token="groups_total"></unset>
+          </progress>
+          <query>`checkpoint_api_get_events($input_name$,$input_uid$,$input_domain$,*,group)` 
+  | where match(name,"$filter_groups$") OR match(ip,"$filter_groups$") OR cidrmatch("$filter_groups$",ip)
+| rename "meta-info.creation-time.iso-8601" as creation_time, "meta-info.last-modify-time.iso-8601" as modification_time
+  $search_filter_groups_find_group$
+  | makemv delim=";;;" domain
+  | fillnull value="-" domain
+  | fillnull value="-" comments
+  | stats values(domain) as domain, values(groups{}.name) as "members" by name, creation_time, modification_time, comments
+  | where match(name,"$filter_groups$") OR match(members,"$filter_groups$")
+  | fillnull value="-" members
+  | table name, creation_time, modification_time, domain, members, comments
+  | rename name as "Name", creation_time as Created, modification_time as "Last Modification", domain as "Also used in", members as "Groups containing this group", comments as "Comments"</query>
+          <earliest>$time_start$</earliest>
+          <latest>$time_end$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">5</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>

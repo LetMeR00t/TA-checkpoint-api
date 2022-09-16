@@ -1,0 +1,69 @@
+<form class="form-horizontal form-complex">
+<div class="control-group">
+	<label class="control-label" for="checkpoint_api_perform_an_action_on_network_objects_instances">Instances <span class="required">*</span> </label>
+    <div class="controls">
+	<input type="text" name="action.checkpoint_api_perform_an_action_on_network_objects.param.instances" id="checkpoint_api_perform_an_action_on_network_objects_instances"/>
+                <span class="help-block"> 
+                    Indicate which instances you want to perform the action (it has to be only one number identifying the instance or a list separated by a comma)
+                </span>
+    </div>
+</div>
+<div class="control-group">
+	<label class="control-label" for="checkpoint_api_perform_an_action_on_network_objects_account_usernames">Account usernames <span class="required">*</span> </label>
+    <div class="controls">
+	<input type="text" name="action.checkpoint_api_perform_an_action_on_network_objects.param.account_usernames" id="checkpoint_api_perform_an_action_on_network_objects_account_usernames"/>
+                <span class="help-block"> 
+                    Specify the name of the account you want to use (username) for each instance as a dictionnary
+                </span>
+    </div>
+</div>
+<div class="control-group">
+	<label class="control-label">Action</label>
+		<div class="controls">
+				<label class="radio" for="checkpoint_api_perform_an_action_on_network_objects_action_add">
+					<input type="radio" name="action.checkpoint_api_perform_an_action_on_network_objects.param.action" id="checkpoint_api_perform_an_action_on_network_objects_action_add" value="add"/>
+					Add
+				</label>
+				<label class="radio" for="checkpoint_api_perform_an_action_on_network_objects_action_delete">
+					<input type="radio" name="action.checkpoint_api_perform_an_action_on_network_objects.param.action" id="checkpoint_api_perform_an_action_on_network_objects_action_delete" value="delete"/>
+					Delete
+				</label>
+                <span class="help-block"> 
+                    Indicates which action you want to execute based on the search results.
+                </span>
+		</div>
+</div>
+<div class="control-group">
+	<label class="control-label" for="checkpoint_api_perform_an_action_on_network_objects_name_template">Name template <span class="required">*</span> </label>
+    <div class="controls">
+	<input type="text" name="action.checkpoint_api_perform_an_action_on_network_objects.param.name_template" id="checkpoint_api_perform_an_action_on_network_objects_name_template"/>
+                <span class="help-block"> 
+                    Indicate the template name (format string in python) to use for any object creation (used only by "Add"). If empty, the name of the search results will be used.
+                </span>
+    </div>
+</div>
+<div class="control-group">
+	<label class="control-label">Automatic publish and install</label>
+		<div class="controls">
+				<label class="radio" for="checkpoint_api_perform_an_action_on_network_objects_automatic_publish_and_install_execute_discard">
+					<input type="radio" name="action.checkpoint_api_perform_an_action_on_network_objects.param.automatic_publish_and_install" id="checkpoint_api_perform_an_action_on_network_objects_automatic_publish_and_install_execute_discard" value="execute_discard"/>
+					Execute and discard (tests only)
+				</label>
+				<label class="radio" for="checkpoint_api_perform_an_action_on_network_objects_automatic_publish_and_install_execute">
+					<input type="radio" name="action.checkpoint_api_perform_an_action_on_network_objects.param.automatic_publish_and_install" id="checkpoint_api_perform_an_action_on_network_objects_automatic_publish_and_install_execute" value="execute"/>
+					Execute only (no publish, no install)
+				</label>
+				<label class="radio" for="checkpoint_api_perform_an_action_on_network_objects_automatic_publish_and_install_publish">
+					<input type="radio" name="action.checkpoint_api_perform_an_action_on_network_objects.param.automatic_publish_and_install" id="checkpoint_api_perform_an_action_on_network_objects_automatic_publish_and_install_publish" value="publish"/>
+					Execute/Publish only (no install)
+				</label>
+				<label class="radio" for="checkpoint_api_perform_an_action_on_network_objects_automatic_publish_and_install_publish_install">
+					<input type="radio" name="action.checkpoint_api_perform_an_action_on_network_objects.param.automatic_publish_and_install" id="checkpoint_api_perform_an_action_on_network_objects_automatic_publish_and_install_publish_install" value="publish_install"/>
+					Execute/Publish/Install
+				</label>
+                <span class="help-block"> 
+                    If you want to automatically publish your changes after pushing the new objects
+                </span>
+		</div>
+</div>
+</form>

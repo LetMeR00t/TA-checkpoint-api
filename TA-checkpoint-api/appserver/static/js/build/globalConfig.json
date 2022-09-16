@@ -1,0 +1,813 @@
+{
+    "meta": {
+        "name": "TA-checkpoint-api",
+        "displayName": "Checkpoint API",
+        "version": "1.0.0",
+        "restRoot": "TA_checkpoint_api",
+        "schemaVersion": "0.0.3"
+    },
+    "pages": {
+        "configuration": {
+            "title": "Configuration",
+            "description": "Set up your add-on",
+            "tabs": [
+                {
+                    "name": "account",
+                    "title": "Account",
+                    "table": {
+                        "header": [
+                            {
+                                "field": "name",
+                                "label": "Account name"
+                            },
+                            {
+                                "field": "username",
+                                "label": "Username"
+                            }
+                        ],
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Account name",
+                            "type": "text",
+                            "required": true,
+                            "help": "Enter a unique name for this account.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 50,
+                                    "errorMsg": "Length of Account name should be between 1 and 50"
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$",
+                                    "errorMsg": "Account name must start with a letter and followed by alphabetic letters, digits or underscores."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "username",
+                            "label": "Username",
+                            "type": "text",
+                            "required": true,
+                            "help": "Enter the username for this account.",
+                            "options": {
+                                "placeholder": "Enter the username here"
+                            },
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200,
+                                    "errorMsg": "Length of username should be between 1 and 200"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "password",
+                            "label": "Password",
+                            "type": "text",
+                            "encrypted": true,
+                            "required": true,
+                            "help": "Enter the password for this account.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Length of password should be between 1 and 8192"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "field": "loglevel",
+                            "label": "Log level",
+                            "type": "singleSelect",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "DEBUG",
+                                        "value": "DEBUG"
+                                    },
+                                    {
+                                        "label": "INFO",
+                                        "value": "INFO"
+                                    },
+                                    {
+                                        "label": "WARNING",
+                                        "value": "WARNING"
+                                    },
+                                    {
+                                        "label": "ERROR",
+                                        "value": "ERROR"
+                                    },
+                                    {
+                                        "label": "CRITICAL",
+                                        "value": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO"
+                        }
+                    ]
+                },
+                {
+                    "name": "additional_parameters",
+                    "title": "Add-on Settings",
+                    "entity": [
+                        {
+                            "field": "instance_1_hostname",
+                            "label": "Instance 1: Hostname",
+                            "type": "text",
+                            "help": "Enter your Checkpoint hostname for the instance 1",
+                            "required": true,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_1_port",
+                            "label": "Instance 1: Port",
+                            "type": "text",
+                            "help": "Enter your Checkpoint port for the instance 1",
+                            "required": true,
+                            "defaultValue": "443",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_1_api_version",
+                            "label": "Instance 1: API Version",
+                            "type": "text",
+                            "help": "Enter your Checkpoint API version to use for the instance 1. Available values are: 1, 1.1 ,1.2, 1.3, 1.4, 1.5, 1.6, 1.6.1, 1.7, 1.7.1, 1.8",
+                            "required": true,
+                            "defaultValue": "1.8",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_1_domains",
+                            "label": "Instance 1: Domains",
+                            "type": "text",
+                            "help": "Enter your Checkpoint domains for the instance 1. You can specify several domains separated by a comma (,). Leave a blank if you don't have several domains.",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_1_whitelist_policies",
+                            "label": "Instance 1: Whitelist policies",
+                            "type": "text",
+                            "help": "Indicates which policies, separated by a comma, are allowed to be accessed/changed. Other policies will not be impacted by changes",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_1_ssl_verify",
+                            "label": "Instance 1: SSL Verify",
+                            "type": "checkbox",
+                            "help": "Indicates if you want to verify the certificate validity for HTTPS. By default, it's set to True (certificate validation is enforced)",
+                            "required": false,
+                            "defaultValue": true
+                        },
+                        {
+                            "field": "instance_2_hostname",
+                            "label": "Instance 2: Hostname",
+                            "type": "text",
+                            "help": "Enter your Checkpoint hostname for the instance 2",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_2_port",
+                            "label": "Instance 2: Port",
+                            "type": "text",
+                            "help": "Enter your Checkpoint port for the instance 2",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_2_api_version",
+                            "label": "Instance 2: API Version",
+                            "type": "text",
+                            "help": "Enter your Checkpoint API version to use for the instance 2. Available values are: 1, 1.1 ,1.2, 1.3, 1.4, 1.5, 1.6, 1.6.1, 1.7, 1.7.1, 1.8",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_2_domains",
+                            "label": "Instance 2: Domains",
+                            "type": "text",
+                            "help": "Enter your Checkpoint domains for the instance 2. You can specify several domains separated by a comma (,). Leave a blank if you don't have several domains.",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_2_whitelist_policies",
+                            "label": "Instance 2: Whitelist policies",
+                            "type": "text",
+                            "help": "Indicates which policies, separated by a comma, are allowed to be accessed/changed. Other policies will not be impacted by changes",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_2_ssl_verify",
+                            "label": "Instance 2: SSL Verify",
+                            "type": "checkbox",
+                            "help": "Indicates if you want to verify the certificate validity for HTTPS. By default, it's set to True (certificate validation is enforced)",
+                            "required": false,
+                            "defaultValue": true
+                        },
+                        {
+                            "field": "instance_3_hostname",
+                            "label": "Instance 3: Hostname",
+                            "type": "text",
+                            "help": "Enter your Checkpoint hostname for the instance 3",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_3_port",
+                            "label": "Instance 3: Port",
+                            "type": "text",
+                            "help": "Enter your Checkpoint port for the instance 3",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_3_api_version",
+                            "label": "Instance 3: API Version",
+                            "type": "text",
+                            "help": "Enter your Checkpoint API version to use for the instance 3. Available values are: 1, 1.1 ,1.2, 1.3, 1.4, 1.5, 1.6, 1.6.1, 1.7, 1.7.1, 1.8",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_3_domains",
+                            "label": "Instance 3: Domains",
+                            "type": "text",
+                            "help": "Enter your Checkpoint domains for the instance 3. You can specify several domains separated by a comma (,). Leave a blank if you don't have several domains.",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_3_whitelist_policies",
+                            "label": "Instance 3: Whitelist policies",
+                            "type": "text",
+                            "help": "Indicates which policies, separated by a comma, are allowed to be accessed/changed. Other policies will not be impacted by changes",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance_3_ssl_verify",
+                            "label": "Instance 3: SSL Verify",
+                            "type": "checkbox",
+                            "help": "Indicates if you want to verify the certificate validity for HTTPS. By default, it's set to True (certificate validation is enforced)",
+                            "required": false,
+                            "defaultValue": true
+                        }
+                    ]
+                }
+            ]
+        },
+        "inputs": {
+            "title": "Inputs",
+            "description": "Manage your data inputs",
+            "table": {
+                "header": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "index",
+                        "label": "Index"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status"
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "index",
+                        "label": "Index"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status"
+                    },
+                    {
+                        "field": "instance",
+                        "label": "Instance"
+                    },
+                    {
+                        "field": "account",
+                        "label": "Account"
+                    },
+                    {
+                        "field": "limit",
+                        "label": "Limit"
+                    },
+                    {
+                        "field": "items",
+                        "label": "Items"
+                    },
+                    {
+                        "field": "details_level",
+                        "label": "Details level"
+                    },
+                    {
+                        "field": "enable_membership_resolution",
+                        "label": "Enable membership resolution"
+                    }
+                ],
+                "actions": [
+                    "edit",
+                    "enable",
+                    "delete",
+                    "clone"
+                ]
+            },
+            "services": [
+                {
+                    "name": "checkpoint_management_configuration",
+                    "title": "Checkpoint Management Configuration",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the data input",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$",
+                                    "errorMsg": "Input Name must start with a letter and followed by alphabetic letters, digits or underscores."
+                                },
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "errorMsg": "Length of input name should be between 1 and 100"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "interval",
+                            "label": "Interval",
+                            "type": "text",
+                            "required": true,
+                            "help": "Time interval of input in seconds.",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^\\-[1-9]\\d*$|^\\d*$",
+                                    "errorMsg": "Interval must be an integer."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "index",
+                            "label": "Index",
+                            "type": "singleSelect",
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80,
+                                    "errorMsg": "Length of index name should be between 1 and 80."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "instance",
+                            "label": "Instance",
+                            "help": "Select the instance you want the events from",
+                            "required": true,
+                            "type": "singleSelect",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "value": "1",
+                                        "label": "Instance 1"
+                                    },
+                                    {
+                                        "value": "2",
+                                        "label": "Instance 2"
+                                    },
+                                    {
+                                        "value": "3",
+                                        "label": "Instance 3"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "account",
+                            "label": "Account",
+                            "help": "Enter your Checkpoint account (configured under Account)",
+                            "required": true,
+                            "type": "singleSelect",
+                            "options": {
+                                "referenceName": "account"
+                            }
+                        },
+                        {
+                            "field": "limit",
+                            "label": "Limit",
+                            "help": "The maximal number of returned results per request.",
+                            "required": true,
+                            "type": "text",
+                            "defaultValue": "50",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "items",
+                            "label": "Items",
+                            "help": "Select which configuration you want to recover",
+                            "required": true,
+                            "type": "multipleSelect",
+                            "options": {
+                                "delimiter": "~",
+                                "items": [
+                                    {
+                                        "value": "host",
+                                        "label": "Network Objects: Hosts"
+                                    },
+                                    {
+                                        "value": "network",
+                                        "label": "Network Objects: Networks"
+                                    },
+                                    {
+                                        "value": "wildcard",
+                                        "label": "Network Objects: Wildcards"
+                                    },
+                                    {
+                                        "value": "group",
+                                        "label": "Network Objects: Groups"
+                                    },
+                                    {
+                                        "value": "gsn-handover-group",
+                                        "label": "Network Objects: GSN Handover Group"
+                                    },
+                                    {
+                                        "value": "address-range",
+                                        "label": "Network Objects: Address Range"
+                                    },
+                                    {
+                                        "value": "multicast-address-range",
+                                        "label": "Network Objects: Multicast Address Range"
+                                    },
+                                    {
+                                        "value": "group-with-exclusion",
+                                        "label": "Network Objects: Group with exclusion"
+                                    },
+                                    {
+                                        "value": "simple-gateway",
+                                        "label": "Network Objects: Simple Gateway"
+                                    },
+                                    {
+                                        "value": "simple-cluster",
+                                        "label": "Network Objects: Simple Cluster"
+                                    },
+                                    {
+                                        "value": "checkpoint-host",
+                                        "label": "Network Objects: CheckPoint Host"
+                                    },
+                                    {
+                                        "value": "security-zone",
+                                        "label": "Network Objects: Security Zone"
+                                    },
+                                    {
+                                        "value": "time",
+                                        "label": "Network Objects: Time"
+                                    },
+                                    {
+                                        "value": "time-group",
+                                        "label": "Network Objects: Time Group"
+                                    },
+                                    {
+                                        "value": "dynamic-object",
+                                        "label": "Network Objects: Dynamic Objects"
+                                    },
+                                    {
+                                        "value": "tag",
+                                        "label": "Network Objects: Tags"
+                                    },
+                                    {
+                                        "value": "dns-domain",
+                                        "label": "Network Objects: DNS Domain"
+                                    },
+                                    {
+                                        "value": "opsec-application",
+                                        "label": "Network Objects: OPSEC Applications"
+                                    },
+                                    {
+                                        "value": "lsv-profile",
+                                        "label": "Network Objects: LSV Profile"
+                                    },
+                                    {
+                                        "value": "tacacs-server",
+                                        "label": "Network Objects: TACACS Servers"
+                                    },
+                                    {
+                                        "value": "tacacs-group",
+                                        "label": "Network Objects: TACACS Group"
+                                    },
+                                    {
+                                        "value": "access-point-name",
+                                        "label": "Network Objects: Access Point Name"
+                                    },
+                                    {
+                                        "value": "lsm-gateway",
+                                        "label": "Network Objects: LSM Gateways"
+                                    },
+                                    {
+                                        "value": "lsm-cluster",
+                                        "label": "Network Objects: LSM Clusters"
+                                    },
+                                    {
+                                        "value": "service-tcp",
+                                        "label": "Service & Applications: Service TCP"
+                                    },
+                                    {
+                                        "value": "service-udp",
+                                        "label": "Service & Applications: Service UDP"
+                                    },
+                                    {
+                                        "value": "service-icmp",
+                                        "label": "Service & Applications: Service ICMP"
+                                    },
+                                    {
+                                        "value": "service-icmp6",
+                                        "label": "Service & Applications: Service ICMP6"
+                                    },
+                                    {
+                                        "value": "service-sctp",
+                                        "label": "Service & Applications: Service SCTP"
+                                    },
+                                    {
+                                        "value": "service-other",
+                                        "label": "Service & Applications: Service Other"
+                                    },
+                                    {
+                                        "value": "service-group",
+                                        "label": "Service & Applications: Service Group"
+                                    },
+                                    {
+                                        "value": "application-site",
+                                        "label": "Service & Applications: Application"
+                                    },
+                                    {
+                                        "value": "application-site-category",
+                                        "label": "Service & Applications: Application Categories"
+                                    },
+                                    {
+                                        "value": "application-site-group",
+                                        "label": "Service & Applications: Application Groups"
+                                    },
+                                    {
+                                        "value": "service-dce-rpc",
+                                        "label": "Service & Applications: Service DCE-RPC"
+                                    },
+                                    {
+                                        "value": "service-rpc",
+                                        "label": "Service & Applications: Service RPC"
+                                    },
+                                    {
+                                        "value": "service-gtp",
+                                        "label": "Service & Applications: Service GTP"
+                                    },
+                                    {
+                                        "value": "service-citrix-tcp",
+                                        "label": "Service & Applications: Service Citrix TCP"
+                                    },
+                                    {
+                                        "value": "service-compound-tcp",
+                                        "label": "Service & Applications: Service Compound TCP"
+                                    },
+                                    {
+                                        "value": "access-rule",
+                                        "label": "Access Control & NAT: Access Rules"
+                                    },
+                                    {
+                                        "value": "nat-rule",
+                                        "label": "Access Control & NAT: NAT Rules"
+                                    },
+                                    {
+                                        "value": "generic-objects",
+                                        "label": "MISC: Generic objects"
+                                    },
+                                    {
+                                        "value": "package",
+                                        "label": "Policy: Policy packages"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "details_level",
+                            "label": "Details level",
+                            "help": "The level of detail for some of the fields in the response can vary from showing only the UID value of the object to a fully detailed representation of the object.",
+                            "required": true,
+                            "type": "radio",
+                            "defaultValue": "standard",
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "uid",
+                                        "label": "UID"
+                                    },
+                                    {
+                                        "value": "standard",
+                                        "label": "Standard"
+                                    },
+                                    {
+                                        "value": "full",
+                                        "label": "Full"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "enable_membership_resolution",
+                            "label": "Enable membership resolution",
+                            "help": "If you want to resolve membership on objects (to which group they are belonging). Be careful that it will take more time to recover objects information. \"Full\" details level must be selected",
+                            "required": true,
+                            "type": "radio",
+                            "defaultValue": "0",
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "0",
+                                        "label": "No"
+                                    },
+                                    {
+                                        "value": "1",
+                                        "label": "Yes"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

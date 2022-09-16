@@ -1,0 +1,170 @@
+<form>
+  <label>[Firewall] Automatic lookup database</label>
+  <description>This dashboard is used to generate the database used to enrich data with an automatic lookup</description>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="input_name">
+      <label>Input</label>
+      <fieldForLabel>input_name</fieldForLabel>
+      <fieldForValue>input_name</fieldForValue>
+      <search>
+        <query>`checkpoint_api_get_events(*,*,*,*,*)`
+  | stats count by input_name</query>
+        <earliest>-3mon</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel id="panel_data_detection">
+      <html>
+        <h1>Data detection</h1>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Last extract time over the last 7 days</title>
+      <input type="text" token="uid">
+        <label>Selected UID for preview</label>
+      </input>
+      <table>
+        <search>
+          <query>`checkpoint_api_get_events($input_name$,*,*,*,*)`
+  | stats earliest(_time) as et, latest(_time) as lt, count by input_uid
+  | eval et=round(relative_time(et,"-1min")), lt=round(relative_time(lt,"+1min")), details = strftime(et,"%F")+" - "+strftime(et,"%H:%M:%S")+" to "+strftime(lt,"%H:%M:%S"), name = "$input_name$"
+  | sort -lt
+  | table name, input_uid, details, et, lt, count
+  | rename name as "Input Name", input_uid as "Input UID", details as "Time range details", count as "Number of events"</query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="refresh.display">progressbar</option>
+        <fields>["Input Name","Input UID","Time range details","Number of events"]</fields>
+        <drilldown>
+          <set token="uid">$row.Input UID$</set>
+          <set token="form.uid">$row.Input UID$</set>
+          <set token="et_selected">$row.et$</set>
+          <set token="lt_selected">$row.lt$</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel id="panel_preview">
+      <html>
+        <h1>Preview</h1>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <input type="radio" token="generation">
+        <label>Is the following preview good for you? If yes, it will generate the new output for the selected input in the database</label>
+        <choice value="0">No ❌</choice>
+        <choice value="1">Yes ✔️</choice>
+        <default>0</default>
+        <change>
+          <condition value="0">
+            <unset token="new_database_output"></unset>
+          </condition>
+          <condition>
+            <set token="new_database_output">$search_selected$</set>
+          </condition>
+        </change>
+      </input>
+      <table>
+        <search>
+          <done>
+            <set token="search_selected">$job.sid$</set>
+          </done>
+          <progress>
+            <unset token="search_selected"></unset>
+          </progress>
+          <query>`checkpoint_api_get_events($input_name$,$uid$,*,network_objects,*)` AND NOT type IN ("address-range","dns-domain","dynamic-object","group","multicast-address-range","opsec-application","security-zone","tag","time","time-group")
+| rename mask-length4 as mask4, ipv4-address as ipv4, mask-length6 as mask6, ipv6-address as ipv6
+| eval mask = case(isnotnull(subnet4),mask4,isnotnull(subnet6),mask6,1==1,"32"), network = case(isnotnull(subnet4),subnet4+"/"+tostring(mask),isnotnull(ipv4),ipv4+"/"+mask,isnotnull(subnet6),subnet6+"/"+tostring(mask),isnotnull(ipv6),ipv6+"/"+mask,1==1,"Unknown"), firewall_object = input_name+if(input_domain!="","_"+input_domain,"")+" / "+name, size = len(name)
+| sort 0 -mask -size input_domain
+| eval comments = if(isnull(comments) OR comments=="","None",comments)
+| table input_name, input_domain, type, network, firewall_object, comments, mask, size</query>
+          <earliest>$et_selected$</earliest>
+          <latest>$lt_selected$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">10</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="type">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel id="panel_generation">
+      <html>
+        <h1>Generation</h1>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Output of the new database (with all entries)</title>
+        <search>
+          <query>| inputlookup ckpt_firewall_objects_database.csv
+| where input_name!="$input_name$"
+| append [| loadjob $new_database_output$]
+| sort 0 -mask -size input_domain
+| outputlookup ckpt_firewall_objects_database.csv
+| table input_name, input_domain, type, network, firewall_object, comments, mask, size</query>
+          <earliest>-15m</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">100</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="type">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row depends="$always_hidden$">
+    <panel>
+      <html>
+        <style>
+          #panel_data_detection .panel-body{
+            background: #8DBAF4 !important;
+          }
+          #panel_preview .panel-body{
+            background: #F48DA1 !important;
+          }
+          #panel_generation .panel-body{
+            background: #E26464 !important;
+          }
+          .panel-body h1{
+            color:white !important;
+            text-align: center !important;
+            font-weight: bold !important;
+            font-size: xx-large;
+          }
+        </style>
+      </html>
+    </panel>
+  </row>
+</form>

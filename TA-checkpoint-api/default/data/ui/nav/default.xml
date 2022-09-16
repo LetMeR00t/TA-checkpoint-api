@@ -1,0 +1,19 @@
+<nav search_view="search" color="#F48DA1">
+  <collection label="Firewall">
+    <view name="checkpoint_firewall__objects_analysis" default='true'/>
+    <view name="firewall_automatic_lookup_database"/>
+  </collection>
+  <collection label="Use cases">
+    <view name="uc1"/>
+  </collection>
+  <collection label="Settings">
+    <view name="configuration"/>
+    <view name="inputs"/>
+    <view name="audit_logs"/>
+    <collection label="Splunk App">
+      <view name="search"/>
+      <view name="alerts"/>
+      <view name="dashboards"/>
+    </collection>
+  </collection>
+</nav>
